@@ -242,7 +242,7 @@ function toggleAdmin(){
   const show = panel.style.display === 'none';
   panel.style.display = show ? 'block' : 'none';
   if(show){
-    adminSelection = new Map(practiceDates.map(pd => [pd.date, { location: pd.location||'', startTime: pd.startTime||'', endTime: pd.endTime||'', message: pd.message||'' }]));
+    adminSelection = new Map(practiceDates.map(pd => [pd.date, { location: pd.location||'', customLocation: pd.customLocation||'', startTime: pd.startTime||'', endTime: pd.endTime||'', message: pd.message||'' }]));
     renderCalGrid();
     renderDateDetailList();
     loadMonthSummaryIntoInputs();
@@ -265,7 +265,7 @@ function renderCalGrid(){
 }
 function toggleCalDay(ds){
   if(adminSelection.has(ds)) adminSelection.delete(ds);
-  else adminSelection.set(ds, { location: '', startTime: '19:00', endTime: '21:00', message: '' });
+  else adminSelection.set(ds, { location: '', customLocation: '', startTime: '19:00', endTime: '21:00', message: '' });
   renderCalGrid();
   renderDateDetailList();
 }
@@ -282,10 +282,12 @@ function renderDateDetailList(){
     const radios = LOCATIONS.map(loc => `
       <div class="loc-radio ${detail.location === loc ? 'on' : ''}" data-loc="${loc}" onclick="selectLocation(this,'${ds}','${loc}')">${loc}</div>
     `).join('');
+    const showCustom = detail.location === 'その他';
     return `
       <div class="detail-row" data-date="${ds}">
         <div class="detail-date">${shortLabel(ds)}</div>
         <div class="loc-radios">${radios}</div>
+        <input type="text" class="loc-custom-input" style="display:${showCustom ? 'block' : 'none'};margin-bottom:8px;" value="${detail.customLocation ? escapeHtml(detail.customLocation) : ''}" placeholder="会場名を入力" oninput="updateDateDetail('${ds}','customLocation',this.value)">
         <div class="time-range">
           <input type="time" value="${detail.startTime || ''}" oninput="updateDateDetail('${ds}','startTime',this.value)">
           <span class="tlabel">〜</span>
@@ -302,6 +304,8 @@ function selectLocation(el, ds, loc){
   el.classList.add('on');
   const detail = adminSelection.get(ds);
   if(detail) detail.location = loc;
+  const customInput = row.querySelector('.loc-custom-input');
+  if(customInput) customInput.style.display = (loc === 'その他') ? 'block' : 'none';
 }
 function updateDateDetail(ds, field, value){
   const detail = adminSelection.get(ds);
@@ -311,7 +315,7 @@ function updateDateDetail(ds, field, value){
 async function savePracticeDates(){
   const ym = document.getElementById('monthInput').value;
   const arr = Array.from(adminSelection.entries())
-    .map(([date, d]) => ({ date, location: d.location || '', startTime: d.startTime || '', endTime: d.endTime || '', message: d.message || '' }))
+    .map(([date, d]) => ({ date, location: d.location || '', customLocation: d.customLocation || '', startTime: d.startTime || '', endTime: d.endTime || '', message: d.message || '' }))
     .sort((a,b) => a.date.localeCompare(b.date));
   if(arr.length === 0){
     alert('練習日が1つも選ばれていません。カレンダーの日付をタップしてから保存してください。');
@@ -336,12 +340,12 @@ async function savePracticeDates(){
 
 function normalizePracticeDates(raw){
   return (raw || []).map(item => {
-    if(typeof item === 'string') return { date: item, location: '', startTime: '', endTime: '', message: '' };
+    if(typeof item === 'string') return { date: item, location: '', customLocation: '', startTime: '', endTime: '', message: '' };
     // migrate legacy single "time" field into startTime
     if(item.time && !item.startTime && !item.endTime){
-      return { date: item.date, location: item.location||'', startTime: item.time, endTime: '', message: item.message||'' };
+      return { date: item.date, location: item.location||'', customLocation: item.customLocation||'', startTime: item.time, endTime: '', message: item.message||'' };
     }
-    return { date: item.date, location: item.location||'', startTime: item.startTime||'', endTime: item.endTime||'', message: item.message||'' };
+    return { date: item.date, location: item.location||'', customLocation: item.customLocation||'', startTime: item.startTime||'', endTime: item.endTime||'', message: item.message||'' };
   });
 }
 
@@ -447,9 +451,10 @@ async function loadAllChildrenForSubmitter(){
     names.forEach(n => addChild(n));
   }
 }
-function locationBadge(loc){
-  if(!loc) return '';
-  return `<span class="loc-badge" data-loc="${escapeHtml(loc)}">${escapeHtml(loc)}</span>`;
+function locationBadge(pd){
+  if(!pd || !pd.location) return '';
+  const label = (pd.location === 'その他' && pd.customLocation) ? pd.customLocation : pd.location;
+  return `<span class="loc-badge" data-loc="${escapeHtml(pd.location)}">${escapeHtml(label)}</span>`;
 }
 
 function formatTimeRange(pd){
@@ -468,7 +473,7 @@ function renderDatesForChild(block){
   list.innerHTML = practiceDates.map(pd => {
     const ds = pd.date;
     const timeRange = formatTimeRange(pd);
-    const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd.location)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
+    const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
     const msgLine = pd.message ? `<div class="date-meta">${escapeHtml(pd.message)}</div>` : '';
     return `
     <div class="date-row" data-date="${ds}">
@@ -609,7 +614,7 @@ async function loadSummary(){
       const totalCount = statusOrder.reduce((sum, k) => sum + groups[k].length, 0);
       if(totalCount === 0) continue;
       const timeRange = formatTimeRange(pd);
-      const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd.location)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
+      const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
       const msgLine = pd.message ? `<div class="date-meta">${escapeHtml(pd.message)}</div>` : '';
       const groupsHtml = statusOrder
         .filter(k => groups[k].length > 0)
