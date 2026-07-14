@@ -59,6 +59,14 @@
     cursor:pointer;color:var(--muted);background:#fff;touch-action:manipulation;
   }
   .loc-radio.on{border-color:var(--navy);background:var(--light-blue);color:var(--navy);}
+  .loc-radio.on[data-loc="六コミ"], .loc-badge[data-loc="六コミ"]{border-color:#1F5C99;background:#E8F1FA;color:#1F5C99;}
+  .loc-radio.on[data-loc="武道館"], .loc-badge[data-loc="武道館"]{border-color:#6B5B95;background:#EFECF7;color:#6B5B95;}
+  .loc-radio.on[data-loc="宝田"], .loc-badge[data-loc="宝田"]{border-color:#2E8B8B;background:#E6F5F5;color:#2E8B8B;}
+  .loc-radio.on[data-loc="櫛スポ"], .loc-badge[data-loc="櫛スポ"]{border-color:#C0682B;background:#FBEEE4;color:#C0682B;}
+  .loc-radio.on[data-loc="羽黒体"], .loc-badge[data-loc="羽黒体"]{border-color:#2E8B57;background:#E9F6EF;color:#2E8B57;}
+  .loc-radio.on[data-loc="藤島体"], .loc-badge[data-loc="藤島体"]{border-color:#B0417A;background:#FAE9F1;color:#B0417A;}
+  .loc-radio.on[data-loc="その他"], .loc-badge[data-loc="その他"]{border-color:#8B5A3C;background:#F3E9DE;color:#8B5A3C;}
+  .loc-badge{display:inline-block;border:1.5px solid var(--border);border-radius:10px;padding:1px 9px;font-size:11px;font-weight:700;margin-right:6px;}
   .detail-row input[type=time]{width:120px;margin-bottom:8px;}
   .time-range{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
   .time-range input[type=time]{margin-bottom:0;}
@@ -257,7 +265,7 @@ function renderCalGrid(){
 }
 function toggleCalDay(ds){
   if(adminSelection.has(ds)) adminSelection.delete(ds);
-  else adminSelection.set(ds, { location: '', startTime: '', endTime: '', message: '' });
+  else adminSelection.set(ds, { location: '', startTime: '19:00', endTime: '21:00', message: '' });
   renderCalGrid();
   renderDateDetailList();
 }
@@ -272,7 +280,7 @@ function renderDateDetailList(){
   container.innerHTML = dates.map(ds => {
     const detail = adminSelection.get(ds);
     const radios = LOCATIONS.map(loc => `
-      <div class="loc-radio ${detail.location === loc ? 'on' : ''}" onclick="selectLocation(this,'${ds}','${loc}')">${loc}</div>
+      <div class="loc-radio ${detail.location === loc ? 'on' : ''}" data-loc="${loc}" onclick="selectLocation(this,'${ds}','${loc}')">${loc}</div>
     `).join('');
     return `
       <div class="detail-row" data-date="${ds}">
@@ -439,6 +447,11 @@ async function loadAllChildrenForSubmitter(){
     names.forEach(n => addChild(n));
   }
 }
+function locationBadge(loc){
+  if(!loc) return '';
+  return `<span class="loc-badge" data-loc="${escapeHtml(loc)}">${escapeHtml(loc)}</span>`;
+}
+
 function formatTimeRange(pd){
   if(pd.startTime && pd.endTime) return `${pd.startTime}〜${pd.endTime}`;
   if(pd.startTime) return `${pd.startTime}〜`;
@@ -454,11 +467,8 @@ function renderDatesForChild(block){
   }
   list.innerHTML = practiceDates.map(pd => {
     const ds = pd.date;
-    const metaParts = [];
-    if(pd.location) metaParts.push(pd.location);
     const timeRange = formatTimeRange(pd);
-    if(timeRange) metaParts.push(timeRange);
-    const metaLine = metaParts.length ? `<div class="date-meta">${escapeHtml(metaParts.join(' / '))}</div>` : '';
+    const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd.location)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
     const msgLine = pd.message ? `<div class="date-meta">${escapeHtml(pd.message)}</div>` : '';
     return `
     <div class="date-row" data-date="${ds}">
@@ -598,11 +608,8 @@ async function loadSummary(){
       }
       const totalCount = statusOrder.reduce((sum, k) => sum + groups[k].length, 0);
       if(totalCount === 0) continue;
-      const metaParts = [];
-      if(pd.location) metaParts.push(pd.location);
       const timeRange = formatTimeRange(pd);
-      if(timeRange) metaParts.push(timeRange);
-      const metaLine = metaParts.length ? `<div class="date-meta">${escapeHtml(metaParts.join(' / '))}</div>` : '';
+      const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd.location)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
       const msgLine = pd.message ? `<div class="date-meta">${escapeHtml(pd.message)}</div>` : '';
       const groupsHtml = statusOrder
         .filter(k => groups[k].length > 0)
