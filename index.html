@@ -478,7 +478,7 @@ function renderDatesForChild(block){
     const ds = pd.date;
     const timeRange = formatTimeRange(pd);
     const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
-    const msgLine = pd.message ? `<div class="date-note">📌 ${escapeHtml(pd.message)}</div>` : '';
+    const msgLine = pd.message ? `<div class="date-note">🏸 ${escapeHtml(pd.message)}</div>` : '';
     return `
     <div class="date-row" data-date="${ds}">
       <div class="date-label">${shortLabel(ds)}</div>
@@ -619,7 +619,7 @@ async function loadSummary(){
       if(totalCount === 0) continue;
       const timeRange = formatTimeRange(pd);
       const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
-      const msgLine = pd.message ? `<div class="date-note">📌 ${escapeHtml(pd.message)}</div>` : '';
+      const msgLine = pd.message ? `<div class="date-note">🏸 ${escapeHtml(pd.message)}</div>` : '';
       const groupsHtml = statusOrder
         .filter(k => groups[k].length > 0)
         .map(k => `
