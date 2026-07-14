@@ -158,9 +158,9 @@
       <div id="dateDetailList" style="margin-top:10px;"></div>
       <button class="save-btn" onclick="savePracticeDates()">この月の練習日を保存</button>
 
-      <label class="field-label" style="margin-top:16px;">当月サマリー（コーチ用・箇条書き）</label>
+      <label class="field-label" style="margin-top:16px;">今月のお知らせ（コーチ用・箇条書き）</label>
       <textarea id="currentMonthSummaryInput" class="summary-textarea" placeholder="例：連絡事項を入れてください"></textarea>
-      <label class="field-label" style="margin-top:10px;">次月サマリー（コーチ用・箇条書き）</label>
+      <label class="field-label" style="margin-top:10px;">来月のお知らせ（コーチ用・箇条書き）</label>
       <textarea id="nextMonthSummaryInput" class="summary-textarea" placeholder="例：連絡事項を入れてください"></textarea>
       <button class="save-btn" onclick="saveMonthSummary()">サマリーを保存</button>
     </div>
@@ -662,8 +662,8 @@ async function loadMonthSummaryDisplay(){
       return;
     }
     card.style.display = 'block';
-    curEl.innerHTML = current ? `<div class="announce-label">当月</div><ul>${bulletize(current)}</ul>` : '';
-    nextEl.innerHTML = next ? `<div class="announce-label">次月</div><ul>${bulletize(next)}</ul>` : '';
+    curEl.innerHTML = current ? `<div class="announce-label">今月のお知らせ</div><ul>${bulletize(current)}</ul>` : '';
+    nextEl.innerHTML = next ? `<div class="announce-label">来月のお知らせ</div><ul>${bulletize(next)}</ul>` : '';
   }catch(e){
     console.error(e);
   }
