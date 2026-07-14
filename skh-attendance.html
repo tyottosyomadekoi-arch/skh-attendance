@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>SKHバドクラブ 練習出欠確認</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root{
+    --navy: #C2410C;
+    --navy-dark: #9A3412;
+    --light-blue: #FFF8F0;
+    --border: #F0DFC8;
+    --ok: #6B8E23;
+    --late: #B8860B;
+    --early: #C0682B;
+    --absent: #B0413E;
+    --other: #8B5A3C;
+    --muted: #9C8B7A;
+    --text: #3D2E22;
+  }
+  *{box-sizing:border-box;}
+  button, .chip, .cal-day, .link-btn, .remove-child{touch-action:manipulation;}
+  body{margin:0;font-family:Arial,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--light-blue);color:var(--text);min-height:100vh;}
+  .header{background:var(--navy);color:#fff;padding:20px 20px 24px;position:relative;overflow:hidden;}
+  .header h1{margin:0;font-size:18px;font-weight:700;}
+  .header p{margin:6px 0 0;font-size:12px;opacity:0.85;}
+  .shuttle{position:absolute;right:-10px;top:-14px;width:70px;height:70px;opacity:0.18;}
+  .wrap{max-width:520px;margin:-14px auto 0;padding:0 14px 40px;}
+  .card{background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(194,65,12,0.08);padding:16px;margin-bottom:14px;}
+  .card h2{font-size:13px;color:var(--navy);margin:0 0 12px;font-weight:700;display:flex;align-items:center;gap:6px;}
+  .card h2::before{content:"";width:4px;height:14px;background:var(--navy);border-radius:2px;display:inline-block;}
+  label.field-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;}
+  input[type=text], input[type=month], input[type=time]{
+    width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:14.5px;font-family:inherit;color:var(--text);background:#fff;
+  }
+  .field{margin-bottom:12px;}
+  .row-between{display:flex;justify-content:space-between;align-items:center;}
+  .link-btn{background:none;border:none;color:var(--navy);font-size:12.5px;font-weight:700;cursor:pointer;padding:4px 0;}
+
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:8px;}
+  .cal-wd{text-align:center;font-size:10.5px;color:var(--muted);padding-bottom:2px;}
+  .cal-day{
+    aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    border:1.5px solid var(--border);border-radius:8px;font-size:12.5px;color:var(--muted);cursor:pointer;background:#fff;
+  }
+  .cal-day.blank{border:none;cursor:default;}
+  .cal-day.active{background:var(--navy);color:#fff;border-color:var(--navy);font-weight:700;}
+  .save-btn{margin-top:10px;width:100%;background:var(--navy);color:#fff;border:none;padding:10px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;}
+
+  .detail-row{border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;}
+  .detail-row .detail-date{font-size:13px;font-weight:700;margin-bottom:8px;}
+  .loc-radios{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .loc-radio{
+    border:1.5px solid var(--border);border-radius:20px;padding:5px 11px;font-size:12px;font-weight:700;
+    cursor:pointer;color:var(--muted);background:#fff;touch-action:manipulation;
+  }
+  .loc-radio.on{border-color:var(--navy);background:var(--light-blue);color:var(--navy);}
+  .detail-row input[type=time]{width:120px;margin-bottom:8px;}
+  .time-range{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+  .time-range input[type=time]{margin-bottom:0;}
+  .time-range .tlabel{font-size:12px;color:var(--muted);}
+  .detail-row input[type=text]{width:100%;}
+  .summary-textarea{
+    width:100%;min-height:70px;padding:9px 11px;border:1px solid var(--border);border-radius:8px;
+    font-size:13.5px;font-family:inherit;color:var(--text);background:#fff;resize:vertical;
+  }
+  #announcementCard ul{margin:0 0 10px;padding-left:18px;font-size:13px;color:var(--text);}
+  #announcementCard .announce-label{font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:4px;}
+  .date-meta{font-size:11.5px;color:var(--muted);margin:-2px 0 8px;}
+
+  .child-block{border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;}
+  .child-block .row-between{margin-bottom:10px;}
+  .remove-child{color:var(--early);background:none;border:none;font-size:12px;cursor:pointer;touch-action:manipulation;}
+  .date-row{border-bottom:1px solid var(--border);padding:10px 2px;}
+  .date-row:last-child{border-bottom:none;}
+  .date-row .date-label{font-size:13.5px;font-weight:700;margin-bottom:6px;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{
+    border:1.5px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--muted);background:#fff;
+  }
+  .chip.on[data-type="attend"]{border-color:var(--ok);background:#F0F4DE;color:var(--ok);}
+  .chip.on[data-type="absent"]{border-color:var(--absent);background:#FBE9E8;color:var(--absent);}
+  .chip.on[data-type="late"]{border-color:var(--late);background:#FBF3E1;color:var(--late);}
+  .chip.on[data-type="early"]{border-color:var(--early);background:#FCEDE4;color:var(--early);}
+  .chip.on[data-type="other"]{border-color:var(--other);background:#F3E9DE;color:var(--other);}
+  .time-inline{display:none;align-items:center;gap:6px;margin-top:6px;}
+  .time-inline.show{display:flex;}
+  .time-inline input{width:120px;}
+  .time-inline .tlabel{font-size:12px;color:var(--muted);}
+  .other-inline{display:none;margin-top:6px;}
+  .other-inline.show{display:block;}
+  .other-inline input{width:100%;}
+
+  .add-child-btn{width:100%;border:1.5px dashed var(--border);background:#fff;color:var(--navy);padding:10px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px;}
+  .submit-btn{width:100%;background:var(--navy);color:#fff;border:none;padding:13px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;}
+  .status-msg{font-size:12.5px;text-align:center;margin-top:10px;color:var(--muted);}
+
+  .summary-date{padding:10px 4px;border-bottom:1px solid var(--border);}
+  .summary-date:last-child{border-bottom:none;}
+  .summary-date .d-title{font-size:13.5px;font-weight:700;margin-bottom:8px;}
+  .status-group{margin-bottom:8px;}
+  .status-group:last-child{margin-bottom:0;}
+  .status-group .group-label{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin-bottom:5px;
+  }
+  .status-group .group-names{font-size:12.5px;color:var(--text);line-height:1.6;padding-left:2px;}
+  .status-group .group-names .name-item{padding:2px 0;}
+  .group-label.attend{background:#F0F4DE;color:var(--ok);}
+  .group-label.absent{background:#FBE9E8;color:var(--absent);}
+  .group-label.late{background:#FBF3E1;color:var(--late);}
+  .group-label.early{background:#FCEDE4;color:var(--early);}
+  .group-label.other{background:#F3E9DE;color:var(--other);}
+  .empty{text-align:center;color:var(--muted);font-size:12.5px;padding:14px 0;}
+  .liff-note{font-size:11px;color:var(--muted);text-align:center;padding-top:2px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <svg class="shuttle" viewBox="0 0 100 100" fill="#fff">
+    <circle cx="50" cy="20" r="12"/>
+    <path d="M50 32 L30 85 M50 32 L50 88 M50 32 L70 85" stroke="#fff" stroke-width="3" fill="none"/>
+  </svg>
+  <h1>SKHバドクラブ 練習出欠確認</h1>
+  <p id="userGreeting">LINEで読み込み中…</p>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="row-between">
+      <h2 style="margin-bottom:0;">対象月</h2>
+      <button class="link-btn" id="adminToggle" onclick="toggleAdmin()">練習日程登録（コーチ用）</button>
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <input type="month" id="monthInput">
+    </div>
+    <div id="adminPanel" style="display:none;">
+      <label class="field-label">練習日をタップして設定（コーチ用）</label>
+      <div class="cal-grid" id="calGrid"></div>
+      <div id="dateDetailList" style="margin-top:10px;"></div>
+      <button class="save-btn" onclick="savePracticeDates()">この月の練習日を保存</button>
+
+      <label class="field-label" style="margin-top:16px;">当月サマリー（コーチ用・箇条書き）</label>
+      <textarea id="currentMonthSummaryInput" class="summary-textarea" placeholder="例：連絡事項を入れてください"></textarea>
+      <label class="field-label" style="margin-top:10px;">次月サマリー（コーチ用・箇条書き）</label>
+      <textarea id="nextMonthSummaryInput" class="summary-textarea" placeholder="例：連絡事項を入れてください"></textarea>
+      <button class="save-btn" onclick="saveMonthSummary()">サマリーを保存</button>
+    </div>
+  </div>
+
+  <div class="card" id="announcementCard" style="display:none;">
+    <h2>お知らせ</h2>
+    <div id="currentMonthSummaryDisplay"></div>
+    <div id="nextMonthSummaryDisplay"></div>
+  </div>
+
+  <div id="childrenContainer"></div>
+  <button class="add-child-btn" onclick="addChild()">＋ お子様を追加（兄弟対応）</button>
+
+  <div class="card">
+    <button class="submit-btn" id="submitBtn" onclick="submitAll()">この月の出欠をまとめて送信</button>
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>今月の全体状況</h2>
+    <div id="summaryContainer"><div class="empty">読み込み中…</div></div>
+  </div>
+
+  <div class="liff-note">SKHバドクラブ 練習管理</div>
+</div>
+
+<script>
+// ▼▼ Google Apps Scriptの「ウェブアプリのURL」をここに貼り付けてください ▼▼
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfRD6sdj7nK_47T-w6in8O2-hT_NIR8SmueGbYP8ia4Q-w5d17Cz_L1bqgc7OxdT9s/exec';
+// ▲▲ ---------------------------------------------------------- ▲▲
+
+let lineDisplayName = null;
+let practiceDates = []; // array of {date, location, time, message}
+let adminSelection = new Map(); // date -> {location, time, message}
+let childCounter = 0;
+const LOCATIONS = ['六コミ', '武道館', '宝田', '櫛スポ', '羽黒体', '藤島体', 'その他'];
+
+async function apiGet(action, params){
+  const q = new URLSearchParams({ action, ...params, _t: Date.now() }).toString();
+  const res = await fetch(`${APPS_SCRIPT_URL}?${q}`);
+  return res.json();
+}
+async function apiPost(payload){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // Apps Script simple trigger回避のためtext/plainで送信
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+const WD = ['日','月','火','水','木','金','土'];
+
+function currentMonthStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+document.getElementById('monthInput').value = currentMonthStr();
+
+function daysInMonth(ym){
+  const [y,m] = ym.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+function firstWeekday(ym){
+  const [y,m] = ym.split('-').map(Number);
+  return new Date(y, m-1, 1).getDay();
+}
+function dateStr(ym, day){
+  const [y,m] = ym.split('-').map(Number);
+  return `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+function weekdayOf(dstr){
+  return WD[new Date(dstr+'T00:00:00').getDay()];
+}
+function shortLabel(dstr){
+  const parts = dstr.split('-');
+  return `${parseInt(parts[1])}/${parseInt(parts[2])}(${weekdayOf(dstr)})`;
+}
+
+function toggleAdmin(){
+  const panel = document.getElementById('adminPanel');
+  const show = panel.style.display === 'none';
+  panel.style.display = show ? 'block' : 'none';
+  if(show){
+    adminSelection = new Map(practiceDates.map(pd => [pd.date, { location: pd.location||'', startTime: pd.startTime||'', endTime: pd.endTime||'', message: pd.message||'' }]));
+    renderCalGrid();
+    renderDateDetailList();
+    loadMonthSummaryIntoInputs();
+  }
+}
+
+function renderCalGrid(){
+  const ym = document.getElementById('monthInput').value;
+  const grid = document.getElementById('calGrid');
+  const total = daysInMonth(ym);
+  const offset = firstWeekday(ym);
+  let html = WD.map(w => `<div class="cal-wd">${w}</div>`).join('');
+  for(let i=0;i<offset;i++) html += `<div class="cal-day blank"></div>`;
+  for(let d=1; d<=total; d++){
+    const ds = dateStr(ym, d);
+    const active = adminSelection.has(ds) ? 'active' : '';
+    html += `<div class="cal-day ${active}" data-date="${ds}" onclick="toggleCalDay('${ds}')">${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+function toggleCalDay(ds){
+  if(adminSelection.has(ds)) adminSelection.delete(ds);
+  else adminSelection.set(ds, { location: '', startTime: '', endTime: '', message: '' });
+  renderCalGrid();
+  renderDateDetailList();
+}
+
+function renderDateDetailList(){
+  const container = document.getElementById('dateDetailList');
+  const dates = Array.from(adminSelection.keys()).sort();
+  if(dates.length === 0){
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = dates.map(ds => {
+    const detail = adminSelection.get(ds);
+    const radios = LOCATIONS.map(loc => `
+      <div class="loc-radio ${detail.location === loc ? 'on' : ''}" onclick="selectLocation(this,'${ds}','${loc}')">${loc}</div>
+    `).join('');
+    return `
+      <div class="detail-row" data-date="${ds}">
+        <div class="detail-date">${shortLabel(ds)}</div>
+        <div class="loc-radios">${radios}</div>
+        <div class="time-range">
+          <input type="time" value="${detail.startTime || ''}" oninput="updateDateDetail('${ds}','startTime',this.value)">
+          <span class="tlabel">〜</span>
+          <input type="time" value="${detail.endTime || ''}" oninput="updateDateDetail('${ds}','endTime',this.value)">
+        </div>
+        <input type="text" value="${detail.message ? escapeHtml(detail.message) : ''}" placeholder="フリーメッセージ" oninput="updateDateDetail('${ds}','message',this.value)">
+      </div>
+    `;
+  }).join('');
+}
+function selectLocation(el, ds, loc){
+  const row = el.closest('.detail-row');
+  row.querySelectorAll('.loc-radio').forEach(r => r.classList.remove('on'));
+  el.classList.add('on');
+  const detail = adminSelection.get(ds);
+  if(detail) detail.location = loc;
+}
+function updateDateDetail(ds, field, value){
+  const detail = adminSelection.get(ds);
+  if(detail) detail[field] = value;
+}
+
+async function savePracticeDates(){
+  const ym = document.getElementById('monthInput').value;
+  const arr = Array.from(adminSelection.entries())
+    .map(([date, d]) => ({ date, location: d.location || '', startTime: d.startTime || '', endTime: d.endTime || '', message: d.message || '' }))
+    .sort((a,b) => a.date.localeCompare(b.date));
+  if(arr.length === 0){
+    alert('練習日が1つも選ばれていません。カレンダーの日付をタップしてから保存してください。');
+    return;
+  }
+  try{
+    const result = await apiPost({ action: 'savePracticeDates', month: ym, dates: arr });
+    if(!result || !result.ok){
+      alert('保存に失敗しました。もう一度お試しください。');
+      return;
+    }
+    practiceDates = arr;
+    document.getElementById('adminPanel').style.display = 'none';
+    renderChildren();
+    loadSummary();
+    alert(`${arr.length}件の練習日を保存しました。`);
+  }catch(e){
+    console.error(e);
+    alert('保存に失敗しました。通信エラーの可能性があります。(' + (e.message || e) + ')');
+  }
+}
+
+function normalizePracticeDates(raw){
+  return (raw || []).map(item => {
+    if(typeof item === 'string') return { date: item, location: '', startTime: '', endTime: '', message: '' };
+    // migrate legacy single "time" field into startTime
+    if(item.time && !item.startTime && !item.endTime){
+      return { date: item.date, location: item.location||'', startTime: item.time, endTime: '', message: item.message||'' };
+    }
+    return { date: item.date, location: item.location||'', startTime: item.startTime||'', endTime: item.endTime||'', message: item.message||'' };
+  });
+}
+
+async function loadPracticeDates(){
+  const ym = document.getElementById('monthInput').value;
+  try{
+    const r = await apiGet('getPracticeDates', { month: ym });
+    practiceDates = normalizePracticeDates(r.dates);
+  }catch(e){
+    console.error(e);
+    practiceDates = [];
+  }
+  renderChildren();
+  loadSummary();
+  loadMonthSummaryDisplay();
+}
+
+function addChild(prefillName){
+  childCounter++;
+  const id = `child_${childCounter}`;
+  const container = document.getElementById('childrenContainer');
+  const block = document.createElement('div');
+  block.className = 'card child-block';
+  block.id = id;
+  block.innerHTML = `
+    <div class="row-between">
+      <div class="field" style="margin:0;flex:1;">
+        <label class="field-label">お子様・コーチのお名前</label>
+        <input type="text" class="childName" placeholder="例）佐藤 太郎" value="${prefillName || ''}">
+      </div>
+      <button class="remove-child" onclick="removeChild('${id}')" style="margin-left:8px;">削除</button>
+    </div>
+    <div class="loadNote" style="font-size:11.5px;color:var(--muted);margin:-4px 0 6px;"></div>
+    <div class="datesList"></div>
+  `;
+  container.appendChild(block);
+  renderDatesForChild(block);
+  block.querySelector('.childName').addEventListener('blur', () => loadAndApplyExisting(block));
+  if(prefillName) loadAndApplyExisting(block);
+}
+
+async function loadAndApplyExisting(block){
+  const nameEl = block.querySelector('.childName');
+  const name = nameEl ? nameEl.value.trim() : '';
+  const note = block.querySelector('.loadNote');
+  if(!name) return;
+  const ym = document.getElementById('monthInput').value;
+  try{
+    const r = await apiGet('getAttendanceList', { month: ym });
+    const submissions = r.submissions || [];
+    const existing = submissions.find(s => s.name === name);
+    if(!existing || !existing.days){
+      if(note) note.textContent = '';
+      return;
+    }
+    block.querySelectorAll('.date-row').forEach(row => {
+      const ds = row.dataset.date;
+      const d = existing.days[ds];
+      if(!d || !d.status) return;
+      const chip = row.querySelector(`.chip[data-type="${d.status}"]`);
+      if(chip && !chip.classList.contains('on')) selectChip(chip);
+      if(d.status === 'late' && d.time){ const t = row.querySelector('.lateTime'); if(t) t.value = d.time; }
+      if(d.status === 'early' && d.time){ const t = row.querySelector('.earlyTime'); if(t) t.value = d.time; }
+      if(d.status === 'other' && d.message){ const m = row.querySelector('.otherMessage'); if(m) m.value = d.message; }
+    });
+    if(note) note.textContent = '前回の回答を読み込みました。変更したい日だけ直して送信してください。';
+  }catch(e){
+    console.error(e);
+  }
+}
+function removeChild(id){
+  const el = document.getElementById(id);
+  if(el) el.remove();
+}
+function renderChildren(){
+  document.querySelectorAll('.child-block').forEach(block => {
+    renderDatesForChild(block);
+    loadAndApplyExisting(block);
+  });
+  if(document.getElementById('childrenContainer').children.length === 0){
+    loadAllChildrenForSubmitter();
+  }
+}
+
+async function loadAllChildrenForSubmitter(){
+  const ym = document.getElementById('monthInput').value;
+  let names = [];
+  if(lineDisplayName){
+    try{
+      const r = await apiGet('getAttendanceList', { month: ym });
+      const submissions = r.submissions || [];
+      const mine = submissions.filter(s => s.submitterLineName === lineDisplayName);
+      // unique names, most recently updated first
+      const seen = new Set();
+      mine.sort((a,b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+      mine.forEach(s => { if(s.name && !seen.has(s.name)){ seen.add(s.name); names.push(s.name); } });
+    }catch(e){ console.error(e); }
+  }
+  if(names.length === 0){
+    // first time using the app: start with one block prefilled with the LINE name
+    addChild(lineDisplayName || '');
+  }else{
+    names.forEach(n => addChild(n));
+  }
+}
+function formatTimeRange(pd){
+  if(pd.startTime && pd.endTime) return `${pd.startTime}〜${pd.endTime}`;
+  if(pd.startTime) return `${pd.startTime}〜`;
+  if(pd.endTime) return `〜${pd.endTime}`;
+  return '';
+}
+
+function renderDatesForChild(block){
+  const list = block.querySelector('.datesList');
+  if(practiceDates.length === 0){
+    list.innerHTML = `<div class="empty">この月の練習日がまだ設定されていません</div>`;
+    return;
+  }
+  list.innerHTML = practiceDates.map(pd => {
+    const ds = pd.date;
+    const metaParts = [];
+    if(pd.location) metaParts.push(pd.location);
+    const timeRange = formatTimeRange(pd);
+    if(timeRange) metaParts.push(timeRange);
+    const metaLine = metaParts.length ? `<div class="date-meta">${escapeHtml(metaParts.join(' / '))}</div>` : '';
+    const msgLine = pd.message ? `<div class="date-meta">${escapeHtml(pd.message)}</div>` : '';
+    return `
+    <div class="date-row" data-date="${ds}">
+      <div class="date-label">${shortLabel(ds)}</div>
+      ${metaLine}${msgLine}
+      <div class="chips">
+        <div class="chip" data-type="attend" onclick="selectChip(this)">参加</div>
+        <div class="chip" data-type="absent" onclick="selectChip(this)">欠席</div>
+        <div class="chip" data-type="late" onclick="selectChip(this)">遅刻</div>
+        <div class="chip" data-type="early" onclick="selectChip(this)">早退</div>
+        <div class="chip" data-type="other" onclick="selectChip(this)">フリーメッセージ</div>
+      </div>
+      <div class="time-inline" data-type="late">
+        <span class="tlabel">到着予定</span><input type="time" class="lateTime">
+      </div>
+      <div class="time-inline" data-type="early">
+        <span class="tlabel">退出予定</span><input type="time" class="earlyTime">
+      </div>
+      <div class="other-inline" data-type="other">
+        <input type="text" class="otherMessage" placeholder="フリーメッセージ">
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+function selectChip(el){
+  const row = el.closest('.date-row');
+  const type = el.dataset.type;
+  const wasOn = el.classList.contains('on');
+
+  // clear all chips in this row, then set only the clicked one (toggle off if tapped again)
+  row.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+  row.querySelectorAll('.time-inline').forEach(t => t.classList.remove('show'));
+  row.querySelectorAll('.other-inline').forEach(t => t.classList.remove('show'));
+
+  if(!wasOn){
+    el.classList.add('on');
+    if(type === 'late' || type === 'early'){
+      row.querySelector(`.time-inline[data-type="${type}"]`).classList.add('show');
+    }
+    if(type === 'other'){
+      row.querySelector(`.other-inline[data-type="other"]`).classList.add('show');
+    }
+  }
+}
+
+async function submitAll(){
+  const ym = document.getElementById('monthInput').value;
+  const msg = document.getElementById('statusMsg');
+  const blocks = document.querySelectorAll('.child-block');
+  if(blocks.length === 0){ msg.textContent = 'お子様を追加してください'; return; }
+
+  msg.textContent = '送信中…';
+  let ok = true;
+  let errorDetail = '';
+  let sentCount = 0;
+  let skippedNoName = 0;
+
+  try{
+    for(const block of blocks){
+      const nameEl = block.querySelector('.childName');
+      const name = nameEl ? nameEl.value.trim() : '';
+      if(!name){ skippedNoName++; continue; }
+      const days = {};
+      block.querySelectorAll('.date-row').forEach(row => {
+        const ds = row.dataset.date;
+        const activeChip = row.querySelector('.chip.on');
+        if(!activeChip) return;
+        const status = activeChip.dataset.type; // attend | absent | late | early | other
+        const entry = { status };
+        if(status === 'late'){
+          const t = row.querySelector('.lateTime');
+          entry.time = t ? t.value : null;
+        }
+        if(status === 'early'){
+          const t = row.querySelector('.earlyTime');
+          entry.time = t ? t.value : null;
+        }
+        if(status === 'other'){
+          const m = row.querySelector('.otherMessage');
+          entry.message = m ? m.value.trim() : '';
+        }
+        days[ds] = entry;
+      });
+      try{
+        const result = await apiPost({
+          action: 'saveAttendance', month: ym, name,
+          submitterLineName: lineDisplayName || null, days
+        });
+        if(!result || !result.ok){ ok = false; } else { sentCount++; }
+      }catch(e){ console.error(e); ok = false; errorDetail = e.message || String(e); }
+    }
+  }catch(e){
+    console.error(e);
+    ok = false;
+    errorDetail = e.message || String(e);
+  }
+
+  if(sentCount === 0 && skippedNoName > 0){
+    msg.textContent = 'お名前が入力されていないため送信されていません。「お子様・コーチのお名前」欄を確認してください。';
+    return;
+  }
+
+  msg.textContent = ok
+    ? 'この月の出欠を送信しました。ありがとうございます！反映まで少しお待ちください…'
+    : `送信に失敗しました。${errorDetail ? '(' + errorDetail + ')' : 'もう一度お試しください。'}`;
+  setTimeout(loadSummary, 1500);
+}
+
+async function loadSummary(){
+  const ym = document.getElementById('monthInput').value;
+  const container = document.getElementById('summaryContainer');
+  if(practiceDates.length === 0){
+    container.innerHTML = '<div class="empty">練習日が設定されていません</div>';
+    return;
+  }
+  try{
+    const r = await apiGet('getAttendanceList', { month: ym });
+    const submissions = r.submissions || [];
+    if(submissions.length === 0){
+      container.innerHTML = '<div class="empty">まだ回答がありません</div>';
+      return;
+    }
+    let html = '';
+    const labelMap = { attend: '出席', absent: '欠席', late: '遅刻', early: '早退', other: 'フリーメッセージ' };
+    const statusOrder = ['attend', 'absent', 'late', 'early', 'other'];
+    for(const pd of practiceDates){
+      const ds = pd.date;
+      const groups = { attend: [], absent: [], late: [], early: [], other: [] };
+      for(const s of submissions){
+        const d = s.days ? s.days[ds] : null;
+        if(!d || !d.status || !groups[d.status]) continue;
+        let entryText = escapeHtml(s.name);
+        if(d.status === 'late' || d.status === 'early') entryText += d.time ? `(${d.time})` : '';
+        if(d.status === 'other') entryText += d.message ? `:${escapeHtml(d.message)}` : '';
+        groups[d.status].push(entryText);
+      }
+      const totalCount = statusOrder.reduce((sum, k) => sum + groups[k].length, 0);
+      if(totalCount === 0) continue;
+      const metaParts = [];
+      if(pd.location) metaParts.push(pd.location);
+      const timeRange = formatTimeRange(pd);
+      if(timeRange) metaParts.push(timeRange);
+      const metaLine = metaParts.length ? `<div class="date-meta">${escapeHtml(metaParts.join(' / '))}</div>` : '';
+      const msgLine = pd.message ? `<div class="date-meta">${escapeHtml(pd.message)}</div>` : '';
+      const groupsHtml = statusOrder
+        .filter(k => groups[k].length > 0)
+        .map(k => `
+          <div class="status-group">
+            <span class="group-label ${k}">${labelMap[k]}（${groups[k].length}）</span>
+            <div class="group-names">${groups[k].map(n => `<div class="name-item">${n}</div>`).join('')}</div>
+          </div>
+        `).join('');
+      html += `<div class="summary-date"><div class="d-title">${shortLabel(ds)}</div>${metaLine}${msgLine}${groupsHtml}</div>`;
+    }
+    container.innerHTML = html || '<div class="empty">まだ回答がありません</div>';
+  }catch(e){
+    console.error(e);
+    container.innerHTML = '<div class="empty">読み込みに失敗しました</div>';
+  }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function bulletize(text){
+  return text.split('\n').map(line => line.trim()).filter(Boolean)
+    .map(line => `<li>${escapeHtml(line.replace(/^[・\-*]\s*/, ''))}</li>`).join('');
+}
+
+async function loadMonthSummaryDisplay(){
+  const ym = document.getElementById('monthInput').value;
+  try{
+    const r = await apiGet('getMonthSummary', { month: ym });
+    const current = (r.currentSummary || '').trim();
+    const next = (r.nextSummary || '').trim();
+    const card = document.getElementById('announcementCard');
+    const curEl = document.getElementById('currentMonthSummaryDisplay');
+    const nextEl = document.getElementById('nextMonthSummaryDisplay');
+    if(!current && !next){
+      card.style.display = 'none';
+      curEl.innerHTML = '';
+      nextEl.innerHTML = '';
+      return;
+    }
+    card.style.display = 'block';
+    curEl.innerHTML = current ? `<div class="announce-label">当月</div><ul>${bulletize(current)}</ul>` : '';
+    nextEl.innerHTML = next ? `<div class="announce-label">次月</div><ul>${bulletize(next)}</ul>` : '';
+  }catch(e){
+    console.error(e);
+  }
+}
+
+async function loadMonthSummaryIntoInputs(){
+  const ym = document.getElementById('monthInput').value;
+  try{
+    const r = await apiGet('getMonthSummary', { month: ym });
+    document.getElementById('currentMonthSummaryInput').value = r.currentSummary || '';
+    document.getElementById('nextMonthSummaryInput').value = r.nextSummary || '';
+  }catch(e){
+    console.error(e);
+  }
+}
+
+async function saveMonthSummary(){
+  const ym = document.getElementById('monthInput').value;
+  const current = document.getElementById('currentMonthSummaryInput').value;
+  const next = document.getElementById('nextMonthSummaryInput').value;
+  try{
+    const result = await apiPost({ action: 'saveMonthSummary', month: ym, currentSummary: current, nextSummary: next });
+    if(!result || !result.ok){
+      alert('サマリーの保存に失敗しました。');
+      return;
+    }
+    alert('サマリーを保存しました。');
+    loadMonthSummaryDisplay();
+  }catch(e){
+    console.error(e);
+    alert('サマリーの保存に失敗しました。(' + (e.message || e) + ')');
+  }
+}
+
+document.getElementById('monthInput').addEventListener('change', () => {
+  document.getElementById('childrenContainer').innerHTML = '';
+  document.getElementById('adminPanel').style.display = 'none';
+  loadPracticeDates();
+});
+
+async function initLiff(){
+  const greeting = document.getElementById('userGreeting');
+  try{
+    if(typeof liff === 'undefined'){
+      greeting.textContent = 'お子様・コーチのお名前を入力してください';
+      loadPracticeDates();
+      return;
+    }
+    // Replace YOUR_LIFF_ID with the ID issued in the LINE Developers console
+    await liff.init({ liffId: 'YOUR_LIFF_ID_SKH' });
+    if(!liff.isLoggedIn()){ liff.login(); return; }
+    const profile = await liff.getProfile();
+    lineDisplayName = profile.displayName;
+    greeting.textContent = `${profile.displayName} さん、こんにちは`;
+    loadPracticeDates();
+  }catch(e){
+    console.warn('LIFF init skipped (プレビュー環境):', e);
+    greeting.textContent = 'お子様・コーチのお名前を入力してください';
+    loadPracticeDates();
+  }
+}
+
+initLiff();
+</script>
+
+</body>
+</html>
