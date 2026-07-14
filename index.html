@@ -697,7 +697,7 @@ async function initLiff(){
       return;
     }
     // Replace YOUR_LIFF_ID with the ID issued in the LINE Developers console
-    await liff.init({ liffId: 'YOUR_LIFF_ID_SKH' });
+    await liff.init({ liffId: '2010695013-4h3GcyRC' });
     if(!liff.isLoggedIn()){ liff.login(); return; }
     const profile = await liff.getProfile();
     lineDisplayName = profile.displayName;
