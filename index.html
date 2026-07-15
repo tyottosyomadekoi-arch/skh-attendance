@@ -569,7 +569,7 @@ function renderDatesForChild(block){
     const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
     const msgLine = pd.message ? `<div class="date-note">🏸 ${escapeHtml(pd.message)}</div>` : '';
     return `
-    <div class="date-row ${dayClassFor(ds)}" data-date="${ds}">
+    <div class="date-row ${dayClassFor(ds)}" data-date="${ds}" data-start="${pd.startTime || ''}" data-end="${pd.endTime || ''}">
       <div class="date-label">${dateLabelWithHoliday(ds)}${dateBadgeFor(ds, todayStr, nextDate)}</div>
       ${metaLine}${msgLine}
       <div class="chips">
@@ -592,6 +592,16 @@ function renderDatesForChild(block){
   `;
   }).join('');
 }
+function addMinutesToTime(timeStr, deltaMinutes){
+  if(!timeStr) return '';
+  const [h, m] = timeStr.split(':').map(Number);
+  let total = h * 60 + m + deltaMinutes;
+  total = ((total % 1440) + 1440) % 1440;
+  const nh = Math.floor(total / 60);
+  const nm = total % 60;
+  return `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}`;
+}
+
 function selectChip(el){
   const row = el.closest('.date-row');
   const type = el.dataset.type;
@@ -606,6 +616,18 @@ function selectChip(el){
     el.classList.add('on');
     if(type === 'late' || type === 'early'){
       row.querySelector(`.time-inline[data-type="${type}"]`).classList.add('show');
+      if(type === 'late'){
+        const input = row.querySelector('.lateTime');
+        if(input && !input.value && row.dataset.start){
+          input.value = addMinutesToTime(row.dataset.start, 30);
+        }
+      }
+      if(type === 'early'){
+        const input = row.querySelector('.earlyTime');
+        if(input && !input.value && row.dataset.end){
+          input.value = addMinutesToTime(row.dataset.end, -60);
+        }
+      }
     }
     if(type === 'other'){
       row.querySelector(`.other-inline[data-type="other"]`).classList.add('show');
