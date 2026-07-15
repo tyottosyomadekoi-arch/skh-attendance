@@ -48,11 +48,17 @@
     border:1.5px solid var(--border);border-radius:8px;font-size:12.5px;color:var(--muted);cursor:pointer;background:#fff;
   }
   .cal-day.blank{border:none;cursor:default;}
+  .cal-day.day-sat{color:#1F5C99;font-weight:700;}
+  .cal-day.day-sun, .cal-day.day-holiday{color:#C0392B;font-weight:700;}
   .cal-day.active{background:var(--navy);color:#fff;border-color:var(--navy);font-weight:700;}
   .save-btn{margin-top:10px;width:100%;background:var(--navy);color:#fff;border:none;padding:10px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;}
 
   .detail-row{border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;}
   .detail-row .detail-date{font-size:13px;font-weight:700;margin-bottom:8px;}
+  .detail-row.day-sat{border-left:4px solid #1F5C99;}
+  .detail-row.day-sun, .detail-row.day-holiday{border-left:4px solid #C0392B;}
+  .detail-row.day-sat .detail-date{color:#1F5C99;}
+  .detail-row.day-sun .detail-date, .detail-row.day-holiday .detail-date{color:#C0392B;}
   .loc-radios{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
   .loc-radio{
     border:1.5px solid var(--border);border-radius:20px;padding:5px 11px;font-size:12px;font-weight:700;
@@ -309,12 +315,17 @@ function dateBadgeFor(ds, todayStr, nextDate){
   return '';
 }
 
-function toggleAdmin(){
+async function toggleAdmin(){
   const panel = document.getElementById('adminPanel');
   const show = panel.style.display === 'none';
   panel.style.display = show ? 'block' : 'none';
   if(show){
     adminSelection = new Map(practiceDates.map(pd => [pd.date, { location: pd.location||'', customLocation: pd.customLocation||'', startTime: pd.startTime||'', endTime: pd.endTime||'', message: pd.message||'' }]));
+    const ym = document.getElementById('monthInput').value;
+    const total = daysInMonth(ym);
+    const allDatesInMonth = [];
+    for(let d=1; d<=total; d++) allDatesInMonth.push(dateStr(ym, d));
+    await ensureHolidaysLoaded(allDatesInMonth);
     renderCalGrid();
     renderDateDetailList();
     loadMonthSummaryIntoInputs();
@@ -331,7 +342,7 @@ function renderCalGrid(){
   for(let d=1; d<=total; d++){
     const ds = dateStr(ym, d);
     const active = adminSelection.has(ds) ? 'active' : '';
-    html += `<div class="cal-day ${active}" data-date="${ds}" onclick="toggleCalDay('${ds}')">${d}</div>`;
+    html += `<div class="cal-day ${active} ${dayClassFor(ds)}" data-date="${ds}" onclick="toggleCalDay('${ds}')">${d}</div>`;
   }
   grid.innerHTML = html;
 }
@@ -356,8 +367,8 @@ function renderDateDetailList(){
     `).join('');
     const showCustom = detail.location === 'その他';
     return `
-      <div class="detail-row" data-date="${ds}">
-        <div class="detail-date">${shortLabel(ds)}</div>
+      <div class="detail-row ${dayClassFor(ds)}" data-date="${ds}">
+        <div class="detail-date">${dateLabelWithHoliday(ds)}</div>
         <div class="loc-radios">${radios}</div>
         <input type="text" class="loc-custom-input" style="display:${showCustom ? 'block' : 'none'};margin-bottom:8px;" value="${detail.customLocation ? escapeHtml(detail.customLocation) : ''}" placeholder="会場名を入力" oninput="updateDateDetail('${ds}','customLocation',this.value)">
         <div class="time-range">
@@ -541,13 +552,18 @@ function formatTimeRange(pd){
 
 function renderDatesForChild(block){
   const list = block.querySelector('.datesList');
+  const todayStr = getTodayStr();
+  const upcomingDates = practiceDates.filter(pd => pd.date >= todayStr);
   if(practiceDates.length === 0){
     list.innerHTML = `<div class="empty">この月の練習日がまだ設定されていません</div>`;
     return;
   }
-  const todayStr = getTodayStr();
+  if(upcomingDates.length === 0){
+    list.innerHTML = `<div class="empty">今月の残りの練習日はありません</div>`;
+    return;
+  }
   const nextDate = computeNextPracticeDate(practiceDates.map(pd => pd.date));
-  list.innerHTML = practiceDates.map(pd => {
+  list.innerHTML = upcomingDates.map(pd => {
     const ds = pd.date;
     const timeRange = formatTimeRange(pd);
     const metaLine = (pd.location || timeRange) ? `<div class="date-meta">${locationBadge(pd)}${timeRange ? escapeHtml(timeRange) : ''}</div>` : '';
