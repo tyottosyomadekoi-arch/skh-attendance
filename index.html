@@ -52,6 +52,7 @@
   .cal-day.day-sun, .cal-day.day-holiday{color:#C0392B;font-weight:700;}
   .cal-day.active{background:var(--navy);color:#fff;border-color:var(--navy);font-weight:700;}
   .save-btn{margin-top:10px;width:100%;background:var(--navy);color:#fff;border:none;padding:10px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;}
+  .clear-all-btn{margin-top:8px;width:100%;background:#fff;color:#C0392B;border:1.5px solid #C0392B;padding:9px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;touch-action:manipulation;}
 
   .detail-row{border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;}
   .detail-row .detail-date{font-size:13px;font-weight:700;margin-bottom:8px;}
@@ -185,6 +186,7 @@
       <div class="cal-grid" id="calGrid"></div>
       <div id="dateDetailList" style="margin-top:10px;"></div>
       <button class="save-btn" onclick="savePracticeDates()">この月の練習日を保存</button>
+      <button class="clear-all-btn" onclick="clearAllPracticeDates()">この月の練習日をすべてクリア</button>
 
       <label class="field-label" style="margin-top:16px;">今月のお知らせ（コーチ用・箇条書き）</label>
       <textarea id="currentMonthSummaryInput" class="summary-textarea" placeholder="例：連絡事項を入れてください"></textarea>
@@ -422,6 +424,28 @@ async function savePracticeDates(){
   }catch(e){
     console.error(e);
     alert('保存に失敗しました。通信エラーの可能性があります。(' + (e.message || e) + ')');
+  }
+}
+
+async function clearAllPracticeDates(){
+  const ym = document.getElementById('monthInput').value;
+  if(!confirm(`${ym}の練習日をすべて削除します。よろしいですか？（元に戻せません）`)) return;
+  adminSelection.clear();
+  renderCalGrid();
+  renderDateDetailList();
+  try{
+    const result = await apiPost({ action: 'savePracticeDates', month: ym, dates: [] });
+    if(!result || !result.ok){
+      alert('削除に失敗しました。もう一度お試しください。');
+      return;
+    }
+    practiceDates = [];
+    renderChildren();
+    loadSummary();
+    alert('この月の練習日をすべて削除しました。');
+  }catch(e){
+    console.error(e);
+    alert('削除に失敗しました。通信エラーの可能性があります。(' + (e.message || e) + ')');
   }
 }
 
